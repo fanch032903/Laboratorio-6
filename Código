@@ -1,0 +1,119 @@
+//********************************************/
+//Universidad del Valle de Guatemala
+//BE3029 - Electrónica Digital 2
+// Fátima Camposeco-23122
+// Laboratorio 6
+//MCU: ESP32 dev kit 1.0
+//********************************************/
+#include <Arduino.h>
+#include <stdint.h>
+#include <LiquidCrystal.h> // Paso 1 Librería para LCD
+
+//== Definir pines LCD  ==
+#define en 13
+#define rs 27
+#define d4 32
+#define d5 33
+#define d6 22
+#define d7 23
+
+//== Pines LED RGB  ==
+#define LED_R 16
+#define LED_V 19
+#define LED_A 14
+
+//== Pines potenciómetros ==
+const int pot1 = 4;  //LED roja 
+const int pot2 = 15; //LED verde
+
+//== Variables Globales ==
+uint8_t LedRoja = 0;
+uint8_t LedVerde = 0;
+uint8_t LedAzul = 0; 
+
+// Instanciar un objeto LCD - 4 bits
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+//== Datos de PWM ==
+const int frequencia = 5000;      
+const int resolucion = 8;   
+
+// Canales PWM
+const int canalRojo  = 0;
+const int canalVerde = 1;
+const int canalAzul  = 2;
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+  lcd.begin(16, 2);
+  lcd.clear();
+
+  // Configuración PWM
+  ledcSetup(canalRojo, frequencia, resolucion);
+  ledcSetup(canalVerde, frequencia, resolucion);
+  ledcSetup(canalAzul, frequencia, resolucion);
+
+  // Pines y canales PWM 
+  ledcAttachPin(LED_R, canalRojo);
+  ledcAttachPin(LED_V, canalVerde);
+  ledcAttachPin(LED_A, canalAzul);
+
+}
+
+void loop() {
+  // Potenciómetros
+  int lecturaPot1 = analogRead(pot1);
+  int lecturaPot2 = analogRead(pot2);
+
+  LedRoja = map(lecturaPot1, 0, 4095, 0, 255); //convertir valores a 8 BITS 
+  LedVerde = map(lecturaPot2, 0, 4095, 0, 255);
+
+  // Control LED azul 
+  if (Serial.available() > 0) {
+    char comando = Serial.read();
+    if (comando == '+' && LedAzul < 255) LedAzul++;
+    else if (comando == '-' && LedAzul > 0) LedAzul--;
+  }
+
+  // === Aplicar valores a PWM ===
+  ledcWrite(canalRojo, LedRoja);
+  ledcWrite(canalVerde, LedVerde);
+  ledcWrite(canalAzul, LedAzul);
+
+  // Mostrar en LCD 
+  //Nombres
+  lcd.setCursor (0,0);
+  lcd.print("Roja Verde Azul");
+
+  //Valores
+  lcd.setCursor(0, 1);
+  lcd.print("    "); //limpiar pantalla  
+  lcd.setCursor(0, 1);
+  lcd.print(LedRoja); //mostrar valor de la LED Roja
+
+    //Mostrar valor para el pot2
+  lcd.setCursor(6, 1);
+  lcd.print("    ");
+  lcd.setCursor(6, 1);
+  lcd.print(LedVerde); //mostrar valor de la LED Verde
+
+    //Mostrar valor para el pot2
+  lcd.setCursor(13, 1);
+  lcd.print("    ");
+  lcd.setCursor(13, 1);
+  lcd.print(LedAzul); //mostrar valor de la LED azul 
+
+//Monitor serial
+Serial.print("Intensidad LED Roja = ");
+Serial.println(LedRoja);
+
+Serial.print("Intensidad LED Verde = ");
+Serial.println(LedVerde);
+
+Serial.print("Intensidad LED Azul = ");
+Serial.println(LedAzul);
+
+  delay(800);
+}
+
